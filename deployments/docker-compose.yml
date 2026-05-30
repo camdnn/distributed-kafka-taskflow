@@ -1,0 +1,50 @@
+# deployments/docker-compose.yml
+# Single-node Kafka in KRaft mode for local development.
+
+
+# Information gathered from the docker hub apache/kafka
+
+services:
+  kafka:
+    image: confluentinc/cp-kafka:7.7.0
+    container_name: ftq-kafka
+    ports:
+      - "9092:9092"   # client connections (producers/consumers)
+      - "9093:9093"   # controller quorum (Raft consensus traffic)
+    environment:
+      # --- Identity ---
+      KAFKA_NODE_ID: 1
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+
+      # --- KRaft roles ---
+      # This node acts as both 
+      # broker (handles client requests)
+      # controller (participates in Raft quorum for metadata).
+      # Node set as both, easier for development -> in production we separate the two
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+
+      # --- Listeners ---
+      # LISTENERS: addresses that kafka binds to internally (0.0.0.0) means all interaces
+      # ADVERTISED_LISTENERS: addresses Kafka tells clients to use when they connect
+      # PLAINTEXT (9092): how clients talk to this broker
+      # CONTROLLER (9093): how controller nodes talk to each other (Raft)k
+      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://localhost:9092'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+
+      # --- Raft quorum config ---
+      # Format: <node_id>@<host>:<controller_port>
+      # write this for every node you want to introduce into the server
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@localhost:9093'
+
+      # --- Replication settings ---
+      # RAFT concensus algo config
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+      # --- Behavior ---
+      # Force explicit topic creation. We want intentional partition counts.
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
