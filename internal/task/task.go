@@ -43,18 +43,18 @@ func NewTask(taskType string, payload json.RawMessage) *Task {
 func (t *Task) ToJSON() ([]byte, error) {
 	b, err := json.Marshal(t)
 	if err != nil {
-		return nil, fmt.Errorf("unable to serialize task to json %v", err)
+		return nil, fmt.Errorf("unable to serialize task to json %w", err)
 	}
 
 	return b, nil
 }
 
 // FromJSON unpackages the json into a task
-func (t *Task) FromJSON(data []byte) (*Task, error) {
+func FromJSON(data []byte) (*Task, error) {
 	task := new(Task)
 	err := json.Unmarshal(data, &task)
 	if err != nil {
-		return nil, fmt.Errorf("unable to unpackage json in FromJSON %v", err)
+		return nil, fmt.Errorf("unable to unpackage json in FromJSON %w", err)
 	}
 
 	return task, nil

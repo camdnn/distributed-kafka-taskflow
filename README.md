@@ -26,3 +26,10 @@ fault-tolerant-task-queue/
 ├── go.mod
 ├── Makefile
 └── README.md
+
+
+passing payload using json.RawMessage
+
+
+naming convention:
+JSON: snake_case

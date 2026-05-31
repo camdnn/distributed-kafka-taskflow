@@ -12,7 +12,7 @@ func TestTaskRoundTrip(t *testing.T) {
 		t.Fatalf("ToJSON failed: %v", errT)
 	}
 
-	got, errF := orig.FromJSON(data)
+	got, errF := FromJSON(data)
 	if errF != nil {
 		t.Fatalf("FromJSON failed: %v", errF)
 	}
