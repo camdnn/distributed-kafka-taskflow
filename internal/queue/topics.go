@@ -1,4 +1,5 @@
 package queue
+<<<<<<< HEAD
 
 const (
 	TopicTask       = "tasks"
@@ -7,3 +8,5 @@ const (
 	TopicResults    = "results"
 	TopicAlerts     = "alerts"
 )
+=======
+>>>>>>> main

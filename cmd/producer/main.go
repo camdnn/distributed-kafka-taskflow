@@ -20,7 +20,11 @@ func main() {
 
 }
 
-// used for testing
+// func getAdsbData() []task.Task {
+
+// }
+
+// used for testing with fixed data
 func getSampleData() []task.Task {
 	file, err := os.Open(SampleDataPath)
 	if err != nil {
