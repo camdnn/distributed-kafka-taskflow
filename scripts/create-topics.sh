@@ -26,6 +26,7 @@ create_topic "retries" 1
 create_topic "dead-letter" 1
 create_topic "results" 1
 create_topic "task-status" 1
+create_topic "alerts" 1
 
 echo ""
 echo "All topics:"
