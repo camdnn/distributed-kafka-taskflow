@@ -18,16 +18,16 @@ import (
 
 const (
 	SampleDataPath = "../../data/sample-adsb.ndjson"
-	AdsbApiURL     = "https://api.adsb.lol/v2/point/33.942608/-118.418406/15"
+	AdsbAPIURL     = "https://api.adsb.lol/v2/point/33.942608/-118.418406/15"
 )
 
 func main() {
 	// get fresh data and publish forever
-	for {
-		var tasks []task.Task = getAdsbData()
+	p := queue.NewProducer("localhost:9092")
+	defer p.Close()
 
-		p := queue.NewProducer("localhost:9092")
-		defer p.Close()
+	for {
+		var tasks = getAdsbData()
 
 		for _, t := range tasks {
 
@@ -56,12 +56,12 @@ func publishToTaskTopic(p *queue.Producer, t task.Task) error {
 			payloadPart = str
 		}
 		// build minimal JSON object
-		value = []byte(fmt.Sprintf(`{"id":"%s","type":"%s","payload":%s}`, t.ID, t.Type, payloadPart))
+		value = fmt.Appendf(value, `{"id":"%s","type":"%s","payload":%s}`, t.ID, t.Type, payloadPart)
 	}
 
 	// try to pick a stable key (prefer payload.hex when present)
 	key := []byte(t.ID)
-	var payloadMap map[string]interface{}
+	var payloadMap map[string]any
 	if err := json.Unmarshal(t.Payload, &payloadMap); err == nil {
 		if hexVal, ok := payloadMap["hex"].(string); ok && len(hexVal) > 0 {
 			key = []byte(hexVal)
@@ -77,7 +77,7 @@ func publishToTaskTopic(p *queue.Producer, t task.Task) error {
 // using the adsb api url
 func getAdsbData() []task.Task {
 
-	resp, err := http.Get(AdsbApiURL)
+	resp, err := http.Get(AdsbAPIURL)
 	if err != nil {
 		log.Printf("failed to fetch ADSB data: %v", err)
 		return nil
@@ -132,36 +132,37 @@ func getAdsbData() []task.Task {
 
 }
 
-// used for testing with fixed data
-func getSampleData() []task.Task {
-	file, err := os.Open(SampleDataPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-
-	var res []task.Task
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Bytes()
-
-		if len(line) == 0 {
-			continue
-		}
-
-		payload := json.RawMessage(append([]byte(nil), line...))
-		t := task.NewTask("plane", payload)
-
-		t.Display()
-
-		res = append(res, *t)
-
-	}
-
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
-	}
-
-	return res
-}
+//
+// // used for testing with fixed data
+// func getSampleData() []task.Task {
+// 	file, err := os.Open(SampleDataPath)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	defer file.Close()
+//
+// 	var res []task.Task
+//
+// 	scanner := bufio.NewScanner(file)
+// 	for scanner.Scan() {
+// 		line := scanner.Bytes()
+//
+// 		if len(line) == 0 {
+// 			continue
+// 		}
+//
+// 		payload := json.RawMessage(append([]byte(nil), line...))
+// 		t := task.NewTask("plane", payload)
+//
+// 		t.Display()
+//
+// 		res = append(res, *t)
+//
+// 	}
+//
+// 	if err := scanner.Err(); err != nil {
+// 		log.Fatal(err)
+// 	}
+//
+// 	return res
+// }
