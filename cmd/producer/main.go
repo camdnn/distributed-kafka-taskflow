@@ -3,7 +3,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -61,11 +60,8 @@ func publishToTaskTopic(p *queue.Producer, t task.Task) error {
 
 	// try to pick a stable key (prefer payload.hex when present)
 	key := []byte(t.ID)
-	var payloadMap map[string]any
-	if err := json.Unmarshal(t.Payload, &payloadMap); err == nil {
-		if hexVal, ok := payloadMap["hex"].(string); ok && len(hexVal) > 0 {
-			key = []byte(hexVal)
-		}
+	if a, err := task.AircraftFromJSON(t.Payload); err == nil && a.Hex != "" {
+		key = []byte(a.Hex)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -95,36 +91,46 @@ func getAdsbData() []task.Task {
 		return nil
 	}
 
-	var rawMsgs []json.RawMessage
-
-	// 1) Try wrapper {"data": [...]}
 	var wrapper struct {
-		Data []json.RawMessage `json:"data"`
+		Now   float64           `json:"now"`
+		Ac    []json.RawMessage `json:"ac"`
+		Total int               `json:"total"`
 	}
-	if err := json.Unmarshal(body, &wrapper); err == nil && len(wrapper.Data) > 0 {
-		rawMsgs = wrapper.Data
-	} else if err := json.Unmarshal(body, &rawMsgs); err == nil && len(rawMsgs) > 0 {
-		// top-level array parsed successfully
-	} else {
-		// fall back to ndjson (one JSON object per line)
-		scanner := bufio.NewScanner(bytes.NewReader(body))
-		for scanner.Scan() {
-			line := scanner.Bytes()
-			if len(bytes.TrimSpace(line)) == 0 {
-				continue
-			}
-			// copy bytes into a new slice
-			rawMsgs = append(rawMsgs, append([]byte(nil), line...))
-		}
-		if err := scanner.Err(); err != nil {
-			log.Printf("failed to parse adsb response as ndjson: %v", err)
-			return nil
-		}
+	if err := json.Unmarshal(body, &wrapper); err != nil {
+		log.Printf("failed to parse asdb data :%v", err)
+		return nil
 	}
 
+	// responseTime: convert now (ms) once, outside the loop — same for all aircraft in this batch
+	responseTime := time.UnixMilli(int64(wrapper.Now))
+
+	// setup task
 	var res []task.Task
-	for _, m := range rawMsgs {
-		t := task.NewTask("plane", m)
+	for _, m := range wrapper.Ac {
+
+		a, err := task.AircraftFromJSON(m)
+
+		if err != nil {
+			log.Printf("skip malformed data: %v", err)
+			continue
+		}
+
+		// compute observation time = responseTime - seen
+		if a.Seen != nil {
+			a.ObservedAt = responseTime.Add(-time.Duration(*a.Seen * float64(time.Second)))
+		} else {
+			a.ObservedAt = responseTime // no seen value -> best effort, use response time
+		}
+
+		// re-serialize the enriched aircraft as the task payload
+		payload, err := a.ToJSON()
+		if err != nil {
+			log.Printf("skip aircraft, serialize failed: %v", err)
+			continue
+		}
+
+		// add payload back into data
+		t := task.NewTask("process_aircraft", payload)
 		res = append(res, *t)
 	}
 
@@ -132,37 +138,36 @@ func getAdsbData() []task.Task {
 
 }
 
-//
-// // used for testing with fixed data
-// func getSampleData() []task.Task {
-// 	file, err := os.Open(SampleDataPath)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	defer file.Close()
-//
-// 	var res []task.Task
-//
-// 	scanner := bufio.NewScanner(file)
-// 	for scanner.Scan() {
-// 		line := scanner.Bytes()
-//
-// 		if len(line) == 0 {
-// 			continue
-// 		}
-//
-// 		payload := json.RawMessage(append([]byte(nil), line...))
-// 		t := task.NewTask("plane", payload)
-//
-// 		t.Display()
-//
-// 		res = append(res, *t)
-//
-// 	}
-//
-// 	if err := scanner.Err(); err != nil {
-// 		log.Fatal(err)
-// 	}
-//
-// 	return res
-// }
+// used for testing with fixed data
+func getSampleData() []task.Task {
+	file, err := os.Open(SampleDataPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	var res []task.Task
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Bytes()
+
+		if len(line) == 0 {
+			continue
+		}
+
+		payload := json.RawMessage(append([]byte(nil), line...))
+		t := task.NewTask("plane", payload)
+
+		t.Display()
+
+		res = append(res, *t)
+
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	return res
+}

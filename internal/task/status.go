@@ -42,7 +42,7 @@ func NewStatusEvent(t *Task, status TaskStatus, statusMessage string) *StatusEve
 	//init status Event
 	statusEvent.ID = t.ID
 	statusEvent.Type = t.Type
-	statusEvent.Attempt = t.Attempt
+	statusEvent.Attempt = t.Attempts
 	statusEvent.Status = status
 	statusEvent.StatusMessage = statusMessage
 	statusEvent.OccuredAt = time.Now()
@@ -62,7 +62,7 @@ func (s *StatusEvent) ToJSON() ([]byte, error) {
 	return data, nil
 }
 
-// FromJSON unserializes status even json
+// StatusEventFromJSON unserializes status even json
 func StatusEventFromJSON(data []byte) (*StatusEvent, error) {
 	statusEvent := new(StatusEvent)
 

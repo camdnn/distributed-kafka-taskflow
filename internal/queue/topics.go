@@ -6,4 +6,6 @@ const (
 	TopicDeadLetter = "dead-letter"
 	TopicResults    = "results"
 	TopicAlerts     = "alerts"
+
+	TopicStatus = "task-status"
 )

@@ -1,3 +1,4 @@
+// Package queue holds all queue tasks
 package queue
 
 import (
@@ -12,7 +13,7 @@ type Consumer struct {
 	reader *kafka.Reader
 }
 
-// constructor to make a new consumer
+// NewConsumer constructor to make a new consumer
 // need the brokerID to connect to kafka
 // need topic to know what topic to read from
 // need groupID for the parition on topic -> form a group taht kafka can assign disjoing partitions to
@@ -41,13 +42,13 @@ func (c *Consumer) Fetch(ctx context.Context) (*kafka.Message, error) {
 func (c *Consumer) Commit(ctx context.Context, msg *kafka.Message) error {
 	err := c.reader.CommitMessages(ctx, *msg)
 	if err != nil {
-		return fmt.Errorf("unable to commit message %+v: %w", msg, err)
+		return fmt.Errorf("unable to commit message %w", err)
 	}
 
 	return nil
 }
 
-// close consumer
+// Close consumer
 func (c *Consumer) Close() error {
 	return c.reader.Close()
 }

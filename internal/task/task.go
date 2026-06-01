@@ -20,7 +20,7 @@ type Task struct {
 	ID        string          `json:"id"`
 	Type      string          `json:"type"`
 	Payload   json.RawMessage `json:"payload"`
-	Attempt   int             `json:"attempt"`
+	Attempts  int             `json:"attempts"`
 	CreatedAt time.Time       `json:"created_at"`
 	RetryAt   *time.Time      `json:"retry_at,omitempty"`
 }
@@ -32,7 +32,7 @@ func NewTask(taskType string, payload json.RawMessage) *Task {
 	task.ID = uuid.NewString()
 	task.Type = taskType
 	task.Payload = payload
-	task.Attempt = 0
+	task.Attempts = 0
 	task.CreatedAt = time.Now()
 	task.RetryAt = nil
 
@@ -66,7 +66,7 @@ func FromJSON(data []byte) (*Task, error) {
 func (t *Task) Display() {
 	fmt.Printf("Task ID: %s\n", t.ID)
 	fmt.Printf("Type: %s\n", t.Type)
-	fmt.Printf("Attempt: %d\n", t.Attempt)
+	fmt.Printf("Attempt: %d\n", t.Attempts)
 	fmt.Printf("CreatedAt: %s\n", t.CreatedAt.Format(time.RFC3339))
 	if t.RetryAt != nil {
 		fmt.Printf("RetryAt: %s\n", t.RetryAt.Format(time.RFC3339))
