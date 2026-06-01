@@ -20,7 +20,7 @@ type Task struct {
 	ID        string          `json:"id"`
 	Type      string          `json:"type"`
 	Payload   json.RawMessage `json:"payload"`
-	Attempt   int             `json:"attempt"`
+	Attempt   int             `json:"attempts"`
 	CreatedAt time.Time       `json:"created_at"`
 	RetryAt   *time.Time      `json:"retry_at,omitempty"`
 }

@@ -40,3 +40,40 @@ func (a *Aircraft) ToJSON() ([]byte, error) {
 
 	return data, nil
 }
+
+// Validate validates the data for each aircraft
+func (a *Aircraft) Validate() error {
+	if a.Hex == "" {
+		return fmt.Errorf("mising hex")
+	}
+
+	if a.Lat == nil {
+		return fmt.Errorf("missing latitude")
+	}
+
+	if *a.Lat < -90 || *a.Lat > 90 {
+		return fmt.Errorf("latitude out of range: %v", *a.Lat)
+	}
+
+	if a.Lon == nil {
+		return fmt.Errorf("missing longitude")
+	}
+
+	if a.Lon == nil {
+		return fmt.Errorf("missing longitude")
+	}
+
+	if *a.Lon < -180 || *a.Lon > 180 {
+		return fmt.Errorf("longitude out of range: %v", *a.Lon)
+	}
+
+	return nil
+}
+
+// IsEmergency returns a boolean if an emergency squawk code is sent
+func (a *Aircraft) IsEmergency() bool {
+	if a.Squawk != nil && (*a.Squawk == "7500" || *a.Squawk == "7600" || *a.Squawk == "7700") {
+		return true
+	}
+	return false
+}
