@@ -60,3 +60,20 @@ func FromJSON(data []byte) (*Task, error) {
 	return task, nil
 
 }
+
+// Display prints a human-readable representation of the task to stdout.
+// Useful for quick debugging or CLI output.
+func (t *Task) Display() {
+	fmt.Printf("Task ID: %s\n", t.ID)
+	fmt.Printf("Type: %s\n", t.Type)
+	fmt.Printf("Attempt: %d\n", t.Attempt)
+	fmt.Printf("CreatedAt: %s\n", t.CreatedAt.Format(time.RFC3339))
+	if t.RetryAt != nil {
+		fmt.Printf("RetryAt: %s\n", t.RetryAt.Format(time.RFC3339))
+	}
+	if len(t.Payload) > 0 {
+		fmt.Printf("Payload: %s\n", string(t.Payload))
+	} else {
+		fmt.Printf("Payload: <empty>\n")
+	}
+}
