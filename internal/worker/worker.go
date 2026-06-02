@@ -5,8 +5,10 @@ import (
 	"context"
 	"log/slog"
 	"sync"
+	"time"
 
 	"kafka-taskflow/internal/queue"
+	"kafka-taskflow/internal/retry"
 	"kafka-taskflow/internal/task"
 )
 
@@ -96,6 +98,8 @@ func (w *Worker) handleFailure(ctx context.Context, t *task.Task, a *task.Aircra
 	if t.Attempts >= w.maxAttempts {
 		w.deadLetter(ctx, t, a, reason)
 	} else {
+		retryAt := time.Now().Add(retry.Backoff(t.Attempts))
+		t.RetryAt = &retryAt
 		w.publish(ctx, queue.TopicRetries, t)
 		w.publishStatus(ctx, t, task.StatusRetrying, reason)
 	}

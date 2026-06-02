@@ -154,6 +154,8 @@ func writeJSON(w http.ResponseWriter, value any) {
 func main() {
 	defaultTopics := strings.Join(queue.AllTopics(), ",")
 
+	fmt.Printf("http://localhost:8080\n")
+
 	var (
 		broker       = flag.String("broker", "localhost:9092", "kafka broker address")
 		topicsFlag   = flag.String("topics", defaultTopics, "comma-separated kafka topics to consume")
