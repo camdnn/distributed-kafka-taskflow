@@ -4,652 +4,600 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ATC Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; overflow: hidden; }
+    h1, h2, h3, p { margin: 0; }
+    button, input { font: inherit; }
+
     :root {
-      color-scheme: dark;
-      --bg: #101214;
-      --surface: #171a1e;
-      --panel: #20242a;
-      --panel-strong: #282d34;
-      --line: #333942;
-      --text: #f2f5f7;
-      --muted: #aab3bd;
-      --soft: #77818d;
-      --red: #ff5a5f;
-      --amber: #f5b841;
-      --green: #60d394;
-      --cyan: #56cfe1;
-      --blue: #7aa7ff;
-      --shadow: rgba(0, 0, 0, 0.28);
+      --bg:        #1b2a8c;
+      --card:      #1e2e99;
+      --panel:     #111e72;
+      --deep:      #09123d;
+      --border:    rgba(255,255,255,0.10);
+      --border-hi: rgba(255,255,255,0.22);
+      --text:      #ffffff;
+      --muted:     rgba(255,255,255,0.50);
+      --soft:      rgba(255,255,255,0.26);
+      --green:     #4ade80;
+      --amber:     #fbbf24;
+      --red:       #f87171;
+      --bar-track: rgba(255,255,255,0.10);
+      --d-bg:      #f8f9fa;
+      --d-surface: #ffffff;
+      --d-line:    #e8ecf1;
+      --d-text:    #0f172a;
+      --d-muted:   #64748b;
+      --d-soft:    #94a3b8;
+      --d-accent:  #1d4ed8;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    body { background: var(--bg); color: var(--text); font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; }
+    .shell { height: 100vh; display: grid; grid-template-rows: auto minmax(0, 1fr); }
 
-	    html,
-	    body {
-	      height: 100%;
-	      margin: 0;
-	      overflow: hidden;
-	    }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      letter-spacing: 0;
-    }
-
-    button,
-    input {
-      font: inherit;
-    }
-
-	    .shell {
-	      height: 100vh;
-	      min-height: 0;
-	      display: grid;
-	      grid-template-rows: auto minmax(0, 1fr);
-	    }
-
+    /* TOPBAR */
     .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 10;
       display: grid;
-      grid-template-columns: minmax(220px, 1fr) auto minmax(260px, auto);
-      gap: 18px;
-      align-items: center;
-      padding: 16px 22px;
-      background: rgba(16, 18, 20, 0.94);
-      border-bottom: 1px solid var(--line);
-      backdrop-filter: blur(10px);
+      grid-template-columns: minmax(180px,1fr) auto minmax(260px,auto);
+      gap: 20px; align-items: center; padding: 13px 28px;
+      background: rgba(10,18,64,0.65); border-bottom: 1px solid var(--border); backdrop-filter: blur(12px);
     }
-
-    .brand-kicker {
-      margin: 0 0 3px;
-      color: var(--cyan);
-      font-size: 0.76rem;
-      font-weight: 700;
-      text-transform: uppercase;
-    }
-
-    h1,
-    h2,
-    h3,
-    p {
-      margin: 0;
-    }
-
-    h1 {
-      font-size: 1.42rem;
-      line-height: 1.2;
-    }
-
-    .tabs {
-      display: inline-flex;
-      gap: 6px;
-      padding: 4px;
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-    }
-
+    .brand { display: flex; align-items: center; gap: 8px; }
+    .brand-dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; opacity: 0.9; flex-shrink: 0; }
+    .brand-name { font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.05em; }
+    .tabs { display: inline-flex; gap: 4px; }
     .tab {
-      min-width: 112px;
-      min-height: 36px;
-      border: 0;
-      border-radius: 6px;
+      padding: 5px 16px; border: 1px solid var(--border-hi); border-radius: 20px;
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; font-weight: 500;
+      letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); background: transparent;
+      cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .tab.active { background: #fff; border-color: #fff; color: var(--bg); }
+    .tab:not(.active):hover { color: var(--text); }
+    .status-strip { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .state-pill, .mini-pill {
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+      border: 1px solid var(--border-hi); border-radius: 20px; white-space: nowrap;
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.63rem; color: var(--muted); letter-spacing: 0.06em;
+    }
+    .state-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); }
+    .state-pill.live .state-dot { background: var(--green); }
+    .state-pill.live { color: rgba(255,255,255,0.8); }
+    .state-pill.offline .state-dot { background: var(--red); }
+
+    /* MAIN */
+    main { min-height: 0; display: grid; overflow: hidden; }
+    .view { min-height: 0; height: 100%; overflow: hidden; padding: 18px 28px 20px; }
+    .view[hidden] { display: none !important; }
+
+    /* OPS VIEW */
+    #ops-view { display: flex; flex-direction: column; gap: 13px; }
+
+    /* Pipeline strip */
+    .pipeline-strip { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; flex-shrink: 0; }
+    .pipeline-label {
+      display: flex; align-items: center; gap: 8px;
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.67rem; font-weight: 500;
+      color: var(--muted); letter-spacing: 0.16em; text-transform: uppercase; white-space: nowrap;
+    }
+    .pipeline-live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); flex-shrink: 0; transition: background 0.3s; }
+    .pipeline-live-dot.live    { background: var(--green); }
+    .pipeline-live-dot.offline { background: var(--red); }
+    .topic-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .topic-pill {
+      display: inline-flex; align-items: center; gap: 5px; padding: 4px 11px;
+      border: 1px solid var(--border-hi); border-radius: 20px;
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; font-weight: 500;
+      color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
+      cursor: default; transition: background 0.18s, color 0.18s, border-color 0.18s, opacity 0.18s;
+    }
+    .topic-pill.active { background: #fff; border-color: #fff; color: var(--bg); }
+    .topic-pill.idle   { opacity: 0.36; }
+    .pill-num          { font-size: 0.56rem; opacity: 0.62; }
+    .topic-pill.active .pill-num { color: var(--panel); opacity: 0.65; }
+
+    /* Pipeline cards */
+    .pipeline-cards {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px; height: 320px; flex-shrink: 0;
+    }
+    .pipeline-card {
+      display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      overflow: hidden; min-width: 0; transition: border-color 0.2s;
+    }
+    .pipeline-card.active-card { border-color: var(--border-hi); }
+    .card-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      gap: 6px; padding: 10px 12px 8px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .card-head-left { display: flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; }
+    .card-num  { font-family: 'IBM Plex Mono', monospace; font-size: 0.57rem; color: var(--soft); flex-shrink: 0; }
+    .card-sep  { font-family: 'IBM Plex Mono', monospace; font-size: 0.57rem; color: var(--soft); flex-shrink: 0; }
+    .card-title {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; font-weight: 500;
+      color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .card-count { font-family: 'Instrument Sans', sans-serif; font-size: 1rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .card-body  { min-height: 0; overflow: auto; padding: 7px 8px; background: var(--deep); }
+    .card-foot  {
+      padding: 6px 12px; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between;
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.58rem; color: var(--soft); letter-spacing: 0.04em; flex-shrink: 0;
+    }
+
+    /* Card body items */
+    .card-item {
+      display: flex; align-items: center; gap: 6px; padding: 3px 1px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.64rem; color: rgba(255,255,255,0.68); min-width: 0;
+    }
+    .card-item:last-child { border-bottom: none; }
+    .item-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+    .item-dot.green { background: var(--green); }
+    .item-dot.amber { background: var(--amber); }
+    .item-dot.red   { background: var(--red); }
+    .item-dot.muted { background: rgba(255,255,255,0.22); }
+    .item-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Status bars */
+    .status-row {
+      display: grid; grid-template-columns: 1fr auto; gap: 5px 8px;
+      align-items: center; padding: 4px 1px; border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .status-row:last-child { border-bottom: none; }
+    .status-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.58rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+    .status-pct   { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; color: rgba(255,255,255,0.55); text-align: right; }
+    .progress-track { grid-column: 1 / -1; height: 3px; background: var(--bar-track); border-radius: 2px; overflow: hidden; }
+    .progress-fill  { height: 100%; background: rgba(255,255,255,0.42); border-radius: 2px; transition: width 0.5s ease; }
+
+    /* Alert card items */
+    .card-alert {
+      display: grid; grid-template-columns: 10px 1fr; gap: 6px;
+      align-items: start; padding: 4px 1px; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .card-alert:last-child { border-bottom: none; }
+    .alert-ind  { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; color: var(--amber); font-weight: 700; line-height: 1.2; }
+    .card-alert.critical .alert-ind { color: var(--red); }
+    .alert-text { font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; color: rgba(255,255,255,0.82); text-transform: uppercase; letter-spacing: 0.04em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .alert-sub  { font-family: 'IBM Plex Mono', monospace; font-size: 0.57rem; color: var(--muted); margin-top: 1px; }
+    .card-empty { display: flex; align-items: center; justify-content: center; height: 100%; font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; color: var(--soft); letter-spacing: 0.08em; text-transform: uppercase; }
+
+    /* Bottom section */
+    .ops-bottom { display: grid; grid-template-columns: minmax(240px, 0.6fr) minmax(0, 1.4fr); gap: 12px; flex: 1; min-height: 0; }
+
+    .callout {
+      display: flex; flex-direction: column; gap: 10px; padding: 16px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px; min-height: 0; overflow: hidden;
+    }
+    .callout-eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase; }
+    .callout-headline { font-family: 'Instrument Sans', sans-serif; font-size: clamp(1.4rem, 2.2vw, 2rem); font-weight: 700; line-height: 1.2; color: #fff; }
+    .callout-accent { color: var(--red); }
+
+    /* Section label above alert list */
+    .callout-section-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
       color: var(--muted);
-      background: transparent;
-      cursor: pointer;
-    }
-
-    .tab.active {
-      color: var(--text);
-      background: var(--panel-strong);
-    }
-
-    .status-strip {
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      color: var(--muted);
-      font-size: 0.9rem;
-    }
-
-    .state-pill,
-    .mini-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      min-height: 30px;
-      padding: 5px 9px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--surface);
-      white-space: nowrap;
-    }
-
-    .state-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 999px;
-      background: var(--amber);
-    }
-
-    .state-pill.live .state-dot {
-      background: var(--green);
-    }
-
-    .state-pill.offline .state-dot {
-      background: var(--red);
-    }
-
-	    main {
-	      min-height: 0;
-	      display: grid;
-	      overflow: hidden;
-	      padding: 18px 22px 28px;
-	    }
-
-	    .view {
-	      min-height: 0;
-	      height: 100%;
-	      overflow: hidden;
-	    }
-
-	    .view[hidden] {
-	      display: none !important;
-	    }
-
-	    #ops-view {
-	      display: grid;
-	      grid-template-rows: auto minmax(0, 1fr) auto;
-	      gap: 12px;
-	    }
-
-	    #dev-view {
-	      display: grid;
-	      grid-template-rows: auto minmax(0, 1fr);
-	      gap: 14px;
-	    }
-
-	    .metrics {
-	      display: grid;
-	      grid-template-columns: repeat(4, minmax(160px, 1fr));
-	      gap: 12px;
-	    }
-
-    .metric {
-      min-height: 92px;
-      padding: 13px 14px;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      box-shadow: 0 10px 22px var(--shadow);
-    }
-
-    .metric-label {
-      color: var(--muted);
-      font-size: 0.78rem;
-      font-weight: 700;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
     }
 
-    .metric-value {
-      margin-top: 8px;
-      font-size: 2rem;
-      line-height: 1;
-      font-weight: 800;
+    /* Alert list inside the callout — fill available space */
+    .callout-alerts {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow-y: auto;
+      flex: 1;
+      min-height: 0;
     }
 
-    .metric-note {
-      margin-top: 7px;
-      color: var(--soft);
-      font-size: 0.86rem;
-      white-space: nowrap;
+    .callout-alert {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 8px;
+      align-items: start;
+      padding: 7px 10px;
+      border-radius: 6px;
+      background: rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.08);
+      animation: fadein-alert 0.2s ease;
+    }
+
+    @keyframes fadein-alert {
+      from { opacity: 0; transform: translateY(-3px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .callout-alert.critical { border-color: rgba(248,113,113,0.25); }
+
+    .alert-sev {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.62rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .alert-sev.critical { background: rgba(248,113,113,0.18); color: var(--red); }
+    .alert-sev.warning  { background: rgba(251,191,36,0.15);  color: var(--amber); }
+
+    .alert-body { min-width: 0; }
+
+    .alert-cause {
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #fff;
       overflow: hidden;
       text-overflow: ellipsis;
-    }
-
-	    .ops-layout {
-	      min-height: 0;
-	      display: grid;
-	      grid-template-columns: minmax(320px, 0.85fr) minmax(440px, 1.35fr);
-	      gap: 16px;
-	      align-items: stretch;
-	      overflow: hidden;
-	    }
-
-	    .panel {
-	      min-width: 0;
-	      min-height: 0;
-	      display: grid;
-	      grid-template-rows: auto minmax(0, 1fr);
-	      overflow: hidden;
-	      background: var(--panel);
-	      border: 1px solid var(--line);
-	      border-radius: 8px;
-      box-shadow: 0 10px 22px var(--shadow);
-    }
-
-    .panel-header {
-      min-height: 58px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      padding: 13px 14px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .panel-header h2 {
-      font-size: 1rem;
-    }
-
-    .panel-subtle {
-      color: var(--muted);
-      font-size: 0.86rem;
-    }
-
-	    .alert-list {
-	      min-height: 0;
-	      display: grid;
-	      gap: 10px;
-	      padding: 12px;
-	      align-content: start;
-	      overflow: auto;
-	    }
-
-    .empty {
-      min-height: 86px;
-      display: grid;
-      place-items: center;
-      color: var(--muted);
-      border: 1px dashed var(--line);
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.02);
-      text-align: center;
-      padding: 14px;
-    }
-
-    .alert-item {
-      display: grid;
-      grid-template-columns: 8px 1fr;
-      gap: 11px;
-      padding: 11px;
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-    }
-
-    .alert-bar {
-      border-radius: 999px;
-      background: var(--amber);
-    }
-
-    .alert-item.critical .alert-bar {
-      background: var(--red);
-    }
-
-    .alert-item.info .alert-bar {
-      background: var(--cyan);
-    }
-
-    .alert-title {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      align-items: baseline;
-      font-weight: 800;
-      min-width: 0;
-    }
-
-    .alert-title span:first-child {
-      overflow-wrap: anywhere;
-    }
-
-    .alert-meta {
-      display: flex;
-      gap: 9px;
-      flex-wrap: wrap;
-      margin-top: 6px;
-      color: var(--muted);
-      font-size: 0.86rem;
-    }
-
-	    .aircraft-table-wrap {
-	      min-height: 0;
-	      overflow: auto;
-	    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 680px;
-    }
-
-    th,
-    td {
-      padding: 11px 12px;
-      border-bottom: 1px solid var(--line);
-      text-align: left;
-      vertical-align: middle;
       white-space: nowrap;
+      line-height: 1.25;
     }
 
-	    th {
-	      position: sticky;
-	      top: 0;
-	      z-index: 1;
-	      background: var(--panel);
-	      color: var(--muted);
-	      font-size: 0.75rem;
-	      text-transform: uppercase;
-    }
-
-    td {
-      font-size: 0.94rem;
-    }
-
-    .mono {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-    }
-
-    .squawk {
-      display: inline-flex;
-      min-width: 58px;
-      justify-content: center;
-      padding: 4px 7px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: var(--surface);
-    }
-
-    .squawk.emergency {
-      color: #160b0c;
-      background: var(--red);
-      border-color: var(--red);
-      font-weight: 800;
-    }
-
-	    .topic-status {
-	      min-height: 0;
-	      max-height: 78px;
-	      display: grid;
-	      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-	      gap: 10px;
-	      overflow: auto;
-	    }
-
-    .topic-chip {
-      min-height: 58px;
-      padding: 10px 11px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--surface);
-    }
-
-    .topic-chip-name {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      font-weight: 800;
-      overflow-wrap: anywhere;
-    }
-
-    .topic-chip-meta {
-      margin-top: 6px;
+    .alert-detail {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.68rem;
       color: var(--muted);
-      font-size: 0.86rem;
+      margin-top: 3px;
     }
 
-    .dev-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
+    .alert-age {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--soft);
+      flex-shrink: 0;
+      margin-top: 2px;
     }
 
-    .dev-head h2 {
-      font-size: 1.1rem;
+    .callout-stats { display: flex; gap: 8px; margin-top: auto; }
+    .stat-box { display: flex; flex-direction: column; gap: 2px; padding: 9px 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; flex: 1; min-width: 0; }
+    .stat-val { font-family: 'Instrument Sans', sans-serif; font-size: 1.5rem; font-weight: 700; color: #fff; line-height: 1; }
+    .stat-lbl { font-family: 'IBM Plex Mono', monospace; font-size: 0.52rem; color: var(--soft); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px; }
+
+    .aircraft-panel {
+      display: grid; grid-template-rows: auto minmax(0, 1fr);
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; min-height: 0;
+    }
+    .aircraft-panel-head {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .panel-head-label { display: flex; align-items: center; gap: 5px; font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; font-weight: 500; color: var(--text); letter-spacing: 0.12em; text-transform: uppercase; }
+    .panel-num-sm { font-size: 0.58rem; color: var(--soft); }
+    .panel-count-sm { font-family: 'IBM Plex Mono', monospace; font-size: 0.63rem; color: var(--muted); }
+    .aircraft-table-wrap { min-height: 0; overflow: auto; }
+
+    table { width: 100%; border-collapse: collapse; min-width: 560px; }
+    th, td { padding: 8px 14px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; white-space: nowrap; }
+    th { position: sticky; top: 0; z-index: 1; background: var(--card); font-family: 'IBM Plex Mono', monospace; font-size: 0.58rem; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.16em; }
+    td { font-family: 'IBM Plex Mono', monospace; font-size: 0.74rem; color: var(--text); }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+    .squawk { display: inline-flex; min-width: 46px; justify-content: center; padding: 2px 6px; border: 1px solid var(--border-hi); border-radius: 4px; background: var(--deep); font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; }
+    .squawk.emergency { background: var(--red); border-color: var(--red); color: #fff; font-weight: 600; }
+
+    #ops-view ::-webkit-scrollbar { width: 3px; height: 3px; }
+    #ops-view ::-webkit-scrollbar-track { background: transparent; }
+    #ops-view ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); border-radius: 2px; }
+
+    .empty { min-height: 60px; display: grid; place-items: center; color: var(--soft); border: 1px solid var(--border); border-radius: 8px; text-align: center; padding: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 0.66rem; letter-spacing: 0.08em; }
+
+    /* DEV VIEW */
+    #dev-view {
+      background: var(--d-bg);
+      color: var(--d-text);
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 16px;
     }
 
+    .dev-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .dev-head h2 { font-family: 'Instrument Sans', sans-serif; font-size: 1.05rem; font-weight: 700; color: var(--d-text); }
+    #dev-view .mini-pill {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+      background: var(--d-surface); border: 1px solid var(--d-line); color: var(--d-muted); border-radius: 20px;
+    }
+
+    /* Card grid — wider columns, taller rows */
     .topics-grid {
       min-height: 0;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-      grid-auto-rows: minmax(250px, 1fr);
+      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+      grid-auto-rows: minmax(300px, 1fr);
       gap: 14px;
-      align-content: stretch;
       overflow: auto;
+      align-content: start;
     }
 
+    /* Topic card — two rows: header / events */
     .topic-card {
       min-height: 0;
       height: 100%;
       display: grid;
       grid-template-rows: auto minmax(0, 1fr);
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      box-shadow: 0 10px 22px var(--shadow);
+      background: var(--d-surface);
+      border: 1px solid var(--d-line);
+      border-radius: 10px;
       overflow: hidden;
     }
 
     .topic-card header {
-      display: grid;
-      gap: 7px;
-      padding: 12px 13px;
-      border-bottom: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--d-line);
+      background: var(--d-surface);
     }
 
-    .topic-card-title {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: center;
-      min-width: 0;
-    }
+    .topic-card-title { display: flex; justify-content: space-between; gap: 12px; align-items: center; min-width: 0; }
 
     .topic-card-title h3 {
-      font-size: 1rem;
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--d-text);
+      letter-spacing: -0.01em;
       overflow-wrap: anywhere;
+    }
+
+    .topic-card-title .mini-pill {
+      background: #eff6ff; border: 1px solid #bfdbfe; color: var(--d-accent);
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem;
+      padding: 3px 10px; min-height: unset; border-radius: 20px; flex-shrink: 0;
     }
 
     .topic-meta {
       display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--d-muted);
+    }
+
+    /* Event list */
+    .topic-events {
+      min-height: 0;
+      overflow: auto;
+      padding: 10px;
+      background: var(--d-bg);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* Message row — vertical card, JSON always visible */
+    .msg-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 10px 10px 10px 12px;
+      border: 1px solid var(--d-line);
+      border-radius: 8px;
+      background: var(--d-surface);
+      transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
+      cursor: default;
+    }
+
+    .msg-row:hover {
+      background: #f0f6ff;
+      box-shadow: 0 2px 10px rgba(29,78,216,0.08);
+      transform: translateY(-2px);
+    }
+
+    /* Header line: time · summary · offset */
+    .msg-head {
+      display: flex;
+      align-items: center;
       gap: 8px;
       flex-wrap: wrap;
-      color: var(--muted);
-      font-size: 0.82rem;
     }
 
-	    .topic-events {
-	      min-height: 0;
-	      overflow: auto;
-	      padding: 10px;
-	    }
-
-    .dev-event {
-      padding: 10px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--surface);
-      margin-bottom: 9px;
+    .msg-time {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--d-muted);
+      flex-shrink: 0;
     }
 
-    .dev-event-line {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      color: var(--muted);
-      font-size: 0.82rem;
+    .msg-sep { color: var(--d-soft); font-size: 0.7rem; }
+
+    .msg-text {
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--d-text);
+      flex: 1;
+      min-width: 0;
     }
 
-    .dev-summary {
-      margin-top: 6px;
-      font-weight: 800;
+    .msg-offset {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--d-soft);
+      flex-shrink: 0;
+      margin-left: auto;
+    }
+
+    /* JSON block — collapsed by default, expandable */
+    .msg-json {
+      display: none;
+      margin: 0;
+      padding: 10px 12px;
+      border-radius: 6px;
+      background: #f8fafc;
+      color: #1e293b;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.74rem;
+      line-height: 1.55;
+      white-space: pre-wrap;
       overflow-wrap: anywhere;
+      border: 1px solid var(--d-line);
+      overflow: auto;
+      max-height: 400px;
     }
 
-    details {
-      margin-top: 8px;
-    }
+    .msg-json.expanded { display: block; }
 
-    summary {
+    .msg-json-toggle {
+      align-self: flex-start;
+      background: none;
+      border: none;
+      padding: 0;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--d-accent);
       cursor: pointer;
-      color: var(--cyan);
-      font-size: 0.86rem;
+      line-height: 1;
     }
+    .msg-json-toggle:hover { text-decoration: underline; }
 
     pre {
       margin: 8px 0 0;
-      max-height: 260px;
+      max-height: 220px;
       overflow: auto;
-      padding: 10px;
+      padding: 12px;
       border-radius: 6px;
-      background: #0b0d0f;
-      color: #dce3ea;
-      font-size: 0.78rem;
+      background: #f8fafc;
+      color: #1e293b;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.76rem;
+      line-height: 1.5;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
+      border: 1px solid var(--d-line);
     }
 
-	    @media (max-width: 980px) {
-      .topbar {
-        grid-template-columns: 1fr;
-        align-items: stretch;
-      }
-
-      .status-strip {
-        justify-content: flex-start;
-      }
-
-      .tabs {
-        width: 100%;
-      }
-
-      .tab {
-        flex: 1;
-      }
-
-	      .metrics {
-	        grid-template-columns: repeat(2, minmax(0, 1fr));
-	      }
-
-	      .ops-layout {
-	        grid-template-columns: 1fr;
-	        grid-template-rows: minmax(0, 0.85fr) minmax(0, 1.15fr);
-	      }
-	    }
-
-    @media (max-width: 560px) {
-      main,
-      .topbar {
-        padding-left: 12px;
-        padding-right: 12px;
-      }
-
-      .metrics {
-        gap: 9px;
-      }
-
-      .metric-value {
-        font-size: 1.72rem;
-      }
-
-      .topics-grid {
-        grid-template-columns: 1fr;
-      }
+    #dev-view .empty {
+      color: var(--d-soft); border-color: var(--d-line);
+      background: transparent; font-size: 0.82rem; font-family: 'Instrument Sans', sans-serif;
+      letter-spacing: 0;
     }
+
+    #dev-view ::-webkit-scrollbar { width: 5px; height: 5px; }
+    #dev-view ::-webkit-scrollbar-track { background: var(--d-bg); }
+    #dev-view ::-webkit-scrollbar-thumb { background: var(--d-line); border-radius: 3px; }
+
+    @media (max-width: 1100px) { .pipeline-cards { grid-template-columns: repeat(2,1fr); height:auto; } }
+    @media (max-width: 800px)  { .topbar { grid-template-columns:1fr; } .status-strip { justify-content:flex-start; } .pipeline-cards { grid-template-columns:repeat(2,1fr); } .ops-bottom { grid-template-columns:1fr; } }
+    @media (max-width: 560px)  { .view,.topbar { padding:12px 14px; } .pipeline-cards { grid-template-columns:1fr; } .topics-grid { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
   <div class="shell">
     <header class="topbar">
-      <div>
-        <p class="brand-kicker">Air Traffic Control</p>
-        <h1>LAX ATC Monitor</h1>
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <span class="brand-name">ATC_MONITOR</span>
       </div>
-
       <nav class="tabs" aria-label="Views">
         <button class="tab active" type="button" data-view="ops">Operations</button>
         <button class="tab" type="button" data-view="dev">Developer</button>
       </nav>
-
       <div class="status-strip">
-        <span id="stream-state" class="state-pill">
-          <span class="state-dot"></span>
-          <span>Connecting</span>
-        </span>
-        <span id="last-event" class="mini-pill">Last event --</span>
+        <span id="stream-state" class="state-pill"><span class="state-dot"></span><span>Connecting</span></span>
+        <span id="last-event" class="mini-pill">Last event &mdash;</span>
       </div>
     </header>
 
     <main>
       <section id="ops-view" class="view">
-        <section class="metrics" aria-label="Operational metrics">
-          <article class="metric">
-            <p class="metric-label">Aircraft Observed</p>
-            <p id="metric-aircraft" class="metric-value">0</p>
-            <p id="metric-aircraft-note" class="metric-note">No traffic yet</p>
-          </article>
-          <article class="metric">
-            <p class="metric-label">Active Alerts</p>
-            <p id="metric-alerts" class="metric-value">0</p>
-            <p id="metric-alerts-note" class="metric-note">No active alerts</p>
-          </article>
-          <article class="metric">
-            <p class="metric-label">Airport Area</p>
-            <p id="metric-ground" class="metric-value">0</p>
-            <p class="metric-note">Ground or near field</p>
-          </article>
-          <article class="metric">
-            <p class="metric-label">Topics Receiving</p>
-            <p id="metric-topics" class="metric-value">0</p>
-            <p id="metric-topics-note" class="metric-note">0 configured</p>
-          </article>
-        </section>
 
-        <section class="ops-layout">
-          <section class="panel" aria-labelledby="alerts-title">
-            <header class="panel-header">
-              <h2 id="alerts-title">ATC Alerts</h2>
-              <span id="alerts-count" class="panel-subtle">0 active</span>
+        <div class="pipeline-strip">
+          <div class="pipeline-label">
+            <span id="pipeline-dot" class="pipeline-live-dot"></span>
+            <span>CURATION_ENGINE &middot; LIVE LOOP</span>
+          </div>
+          <div id="topic-status" class="topic-pills"></div>
+        </div>
+
+        <div class="pipeline-cards">
+          <article class="pipeline-card" id="pcard-tasks">
+            <header class="card-head">
+              <div class="card-head-left"><span class="card-num">01</span><span class="card-sep">&nbsp;&mdash;&mdash;&nbsp;</span><span class="card-title">INGEST</span></div>
+              <span class="card-count" id="ccount-tasks">0</span>
             </header>
-            <div id="alerts-list" class="alert-list"></div>
-          </section>
+            <div class="card-body" id="cbody-tasks"><div class="card-empty">No tasks yet</div></div>
+            <footer class="card-foot"><span>tasks</span><span id="cmeta-tasks">empty</span></footer>
+          </article>
 
-          <section class="panel" aria-labelledby="aircraft-title">
-            <header class="panel-header">
-              <h2 id="aircraft-title">Aircraft Picture</h2>
-              <span id="aircraft-count" class="panel-subtle">0 aircraft</span>
+          <article class="pipeline-card" id="pcard-task-status">
+            <header class="card-head">
+              <div class="card-head-left"><span class="card-num">02</span><span class="card-sep">&nbsp;&mdash;&mdash;&nbsp;</span><span class="card-title">PROCESSING</span></div>
+              <span class="card-count" id="ccount-task-status">0</span>
+            </header>
+            <div class="card-body" id="cbody-task-status">
+              <div class="status-row"><span class="status-label">Completed</span><span class="status-pct" id="pct-completed">0%</span><div class="progress-track"><div class="progress-fill" id="bar-completed" style="width:0%"></div></div></div>
+              <div class="status-row"><span class="status-label">Processing</span><span class="status-pct" id="pct-processing">0%</span><div class="progress-track"><div class="progress-fill" id="bar-processing" style="width:0%"></div></div></div>
+              <div class="status-row"><span class="status-label">Retried</span><span class="status-pct" id="pct-retried">0%</span><div class="progress-track"><div class="progress-fill" id="bar-retried" style="width:0%"></div></div></div>
+              <div class="status-row"><span class="status-label">Failed</span><span class="status-pct" id="pct-failed">0%</span><div class="progress-track"><div class="progress-fill" id="bar-failed" style="width:0%"></div></div></div>
+            </div>
+            <footer class="card-foot"><span>task-status</span><span id="cmeta-task-status">empty</span></footer>
+          </article>
+
+          <article class="pipeline-card" id="pcard-results">
+            <header class="card-head">
+              <div class="card-head-left"><span class="card-num">03</span><span class="card-sep">&nbsp;&mdash;&mdash;&nbsp;</span><span class="card-title">OUTPUT</span></div>
+              <span class="card-count" id="ccount-results">0</span>
+            </header>
+            <div class="card-body" id="cbody-results"><div class="card-empty">No results yet</div></div>
+            <footer class="card-foot"><span>results</span><span id="cmeta-results">empty</span></footer>
+          </article>
+
+          <article class="pipeline-card" id="pcard-dead-letter">
+            <header class="card-head">
+              <div class="card-head-left"><span class="card-num">04</span><span class="card-sep">&nbsp;&mdash;&mdash;&nbsp;</span><span class="card-title">DEAD LETTER</span></div>
+              <span class="card-count" id="ccount-dead-letter">0</span>
+            </header>
+            <div class="card-body" id="cbody-dead-letter"><div class="card-empty">No failures</div></div>
+            <footer class="card-foot"><span>dead-letter</span><span id="cmeta-dead-letter">empty</span></footer>
+          </article>
+        </div>
+
+        <div class="ops-bottom">
+          <div class="callout">
+            <div class="callout-eyebrow">05 &mdash;&mdash; ATC SITUATIONAL AWARENESS</div>
+            <div class="callout-headline">
+              <span class="callout-accent" id="callout-n-aircraft">0</span> aircraft in sector
+            </div>
+            <div class="callout-stats" style="margin-top:0">
+              <div class="stat-box"><span class="stat-val" id="stat-aircraft">0</span><span class="stat-lbl">Aircraft</span></div>
+              <div class="stat-box"><span class="stat-val" id="stat-alerts">0</span><span class="stat-lbl">Active Alerts</span></div>
+              <div class="stat-box"><span class="stat-val" id="stat-airport">0</span><span class="stat-lbl">Airport Area</span></div>
+              <div class="stat-box"><span class="stat-val" id="callout-n-tasks">0</span><span class="stat-lbl">Tasks Ingested</span></div>
+            </div>
+            <div class="callout-section-label" id="callout-sub">No active alerts</div>
+            <div id="alerts-list" class="callout-alerts"></div>
+          </div>
+
+          <div class="aircraft-panel">
+            <header class="aircraft-panel-head">
+              <div class="panel-head-label">
+                <span class="panel-num-sm">07</span><span>&thinsp;&mdash;&mdash;&thinsp;</span><span>Aircraft Picture</span>
+              </div>
+              <span id="aircraft-count" class="panel-count-sm">0 aircraft</span>
             </header>
             <div class="aircraft-table-wrap">
               <table>
-                <thead>
-                  <tr>
-                    <th>Flight</th>
-                    <th>Hex</th>
-                    <th>Squawk</th>
-                    <th>Altitude</th>
-                    <th>Speed</th>
-                    <th>Area</th>
-                    <th>Last</th>
-                  </tr>
-                </thead>
+                <thead><tr><th>Flight</th><th>Hex</th><th>Squawk</th><th>Altitude</th><th>Speed</th><th>Area</th><th>Last</th></tr></thead>
                 <tbody id="aircraft-body"></tbody>
               </table>
             </div>
-          </section>
-        </section>
+          </div>
+        </div>
 
-        <section id="topic-status" class="topic-status" aria-label="Topic status"></section>
       </section>
 
       <section id="dev-view" class="view" hidden>
@@ -657,469 +605,566 @@
           <h2>Kafka Topics</h2>
           <span id="developer-count" class="mini-pill">0 topics</span>
         </div>
-        <section id="topics-grid" class="topics-grid" aria-label="Kafka topic messages"></section>
+        <section id="topics-grid" class="topics-grid"></section>
       </section>
     </main>
   </div>
 
   <script>
-    const FALLBACK_TOPICS = ['tasks', 'retries', 'dead-letter', 'results', 'task-status', 'alerts'];
+    const FALLBACK_TOPICS = ['tasks','retries','dead-letter','results','task-status','alerts'];
     const MAX_TOPIC_MESSAGES = 80;
     const MAX_ALERTS = 20;
     const MAX_AIRCRAFT_ROWS = 18;
-    const EMERGENCY_SQUAWKS = {
-      '7500': 'Unlawful interference',
-      '7600': 'Radio failure',
-      '7700': 'General emergency'
-    };
+    const EMERGENCY_SQUAWKS = {'7500':'Unlawful interference','7600':'Radio failure','7700':'General emergency'};
+    const CARD_TOPICS = ['tasks','task-status','results','dead-letter'];
 
-    const state = {
-      topics: [],
-      messages: new Map(),
-      aircraft: new Map(),
-      alerts: new Map()
+    const state = { topics:[], messages:new Map(), aircraft:new Map(), alerts:new Map(), totals:new Map() };
+
+    const rendered = {
+      alertEls:    new Map(), // alert.key → .callout-alert element
+      cardBodies:  new Map(),
+      aircraftEls: new Map(),
+      topicPills:  new Map(),
+      topicCards:  new Map(),
     };
 
     const els = {
-      streamState: document.getElementById('stream-state'),
-      lastEvent: document.getElementById('last-event'),
-      alertsList: document.getElementById('alerts-list'),
-      alertsCount: document.getElementById('alerts-count'),
-      aircraftBody: document.getElementById('aircraft-body'),
-      aircraftCount: document.getElementById('aircraft-count'),
-      topicStatus: document.getElementById('topic-status'),
-      topicsGrid: document.getElementById('topics-grid'),
-      developerCount: document.getElementById('developer-count'),
-      metricAircraft: document.getElementById('metric-aircraft'),
-      metricAircraftNote: document.getElementById('metric-aircraft-note'),
-      metricAlerts: document.getElementById('metric-alerts'),
-      metricAlertsNote: document.getElementById('metric-alerts-note'),
-      metricGround: document.getElementById('metric-ground'),
-      metricTopics: document.getElementById('metric-topics'),
-      metricTopicsNote: document.getElementById('metric-topics-note')
+      streamState:     document.getElementById('stream-state'),
+      lastEvent:       document.getElementById('last-event'),
+      topicStatus:     document.getElementById('topic-status'),
+      topicsGrid:      document.getElementById('topics-grid'),
+      developerCount:  document.getElementById('developer-count'),
+      pipelineDot:     document.getElementById('pipeline-dot'),
+      alertsList:      document.getElementById('alerts-list'),
+      aircraftBody:    document.getElementById('aircraft-body'),
+      aircraftCount:   document.getElementById('aircraft-count'),
+      calloutAircraft: document.getElementById('callout-n-aircraft'),
+      calloutTasks:    document.getElementById('callout-n-tasks'),
+      calloutSub:      document.getElementById('callout-sub'),
+      statAircraft:    document.getElementById('stat-aircraft'),
+      statAlerts:      document.getElementById('stat-alerts'),
+      statAirport:     document.getElementById('stat-airport'),
     };
+
+    const cardEls = {};
+    for (const topic of CARD_TOPICS) {
+      cardEls[topic] = {
+        card:  document.getElementById('pcard-'  + topic),
+        body:  document.getElementById('cbody-'  + topic),
+        count: document.getElementById('ccount-' + topic),
+        meta:  document.getElementById('cmeta-'  + topic),
+      };
+    }
 
     function setTopics(topics) {
       const clean = Array.from(new Set((topics && topics.length ? topics : FALLBACK_TOPICS).filter(Boolean)));
       state.topics = clean;
-      for (const topic of clean) {
-        if (!state.messages.has(topic)) state.messages.set(topic, []);
-      }
+      for (const t of clean) if (!state.messages.has(t)) state.messages.set(t, []);
     }
 
     function setView(name) {
       const view = name === 'dev' ? 'dev' : 'ops';
       document.getElementById('ops-view').hidden = view !== 'ops';
       document.getElementById('dev-view').hidden = view !== 'dev';
-      for (const tab of document.querySelectorAll('.tab')) {
+      for (const tab of document.querySelectorAll('.tab'))
         tab.classList.toggle('active', tab.dataset.view === view);
-      }
       if (location.hash !== '#' + view) history.replaceState(null, '', '#' + view);
     }
 
     function setStreamState(status) {
-      els.streamState.classList.remove('live', 'offline');
+      els.streamState.classList.remove('live','offline');
+      els.pipelineDot.classList.remove('live','offline');
       const label = els.streamState.querySelector('span:last-child');
-      if (status === 'live') {
-        els.streamState.classList.add('live');
-        label.textContent = 'Live';
-      } else if (status === 'offline') {
-        els.streamState.classList.add('offline');
-        label.textContent = 'Reconnecting';
-      } else {
-        label.textContent = 'Connecting';
-      }
+      if (status === 'live')    { els.streamState.classList.add('live');    els.pipelineDot.classList.add('live');    label.textContent = 'Live'; }
+      else if (status === 'offline') { els.streamState.classList.add('offline'); els.pipelineDot.classList.add('offline'); label.textContent = 'Reconnecting'; }
+      else label.textContent = 'Connecting';
     }
 
     async function loadSnapshot() {
       try {
-        const response = await fetch('/api/snapshot', { cache: 'no-store' });
-        if (!response.ok) throw new Error(response.statusText);
-        const snapshot = await response.json();
-        setTopics(snapshot.topics);
-        for (const [topic, events] of Object.entries(snapshot.messages || {})) {
-          if (!state.messages.has(topic)) state.messages.set(topic, []);
-          for (const event of events || []) handleEvent(event, false);
-        }
-      } catch (err) {
-        setTopics(FALLBACK_TOPICS);
-        console.warn('snapshot failed', err);
-      }
+        const r = await fetch('/api/snapshot',{cache:'no-store'});
+        if (!r.ok) throw new Error(r.statusText);
+        const snap = await r.json();
+        setTopics(snap.topics);
+        for (const [topic,events] of Object.entries(snap.messages||{}))
+          for (const ev of events||[]) handleEvent(ev,false);
+      } catch(err) { setTopics(FALLBACK_TOPICS); console.warn('snapshot failed',err); }
       renderAll();
     }
 
     function connectEvents() {
       setStreamState('connecting');
       const es = new EventSource('/events');
-
-      es.onopen = () => setStreamState('live');
-      es.onmessage = event => {
-        try {
-          handleEvent(JSON.parse(event.data), true);
-        } catch (err) {
-          console.warn('bad monitor event', err);
-        }
-      };
-      es.onerror = () => setStreamState('offline');
+      es.onopen   = () => setStreamState('live');
+      es.onerror  = () => setStreamState('offline');
+      es.onmessage = ev => { try { handleEvent(JSON.parse(ev.data),true); } catch(e){ console.warn(e); } };
     }
 
     function handleEvent(event, shouldRender) {
-      if (!event || !event.topic) return;
-      if (!state.messages.has(event.topic)) {
-        state.topics.push(event.topic);
-        state.messages.set(event.topic, []);
-      }
-
-      const messages = state.messages.get(event.topic);
-      messages.unshift(event);
-      if (messages.length > MAX_TOPIC_MESSAGES) messages.length = MAX_TOPIC_MESSAGES;
-
+      if (!event||!event.topic) return;
+      if (!state.messages.has(event.topic)) { state.topics.push(event.topic); state.messages.set(event.topic,[]); }
+      const msgs = state.messages.get(event.topic);
+      msgs.unshift(event);
+      state.totals.set(event.topic, (state.totals.get(event.topic) || 0) + 1);
+      if (msgs.length > MAX_TOPIC_MESSAGES) msgs.length = MAX_TOPIC_MESSAGES;
       const payload = normalizePayload(event.payload);
-      const record = extractRecord(payload);
-      updateAircraft(event, record);
-      updateAlerts(event, payload, record);
-
+      const record  = extractRecord(payload);
+      updateAircraft(event,record);
+      updateAlerts(event,payload,record);
       els.lastEvent.textContent = 'Last event ' + formatTime(event.received_at);
       if (shouldRender) renderAll();
     }
 
-    function normalizePayload(payload) {
-      if (typeof payload === 'string') {
-        try {
-          return JSON.parse(payload);
-        } catch {
-          return { message: payload };
-        }
-      }
-      return payload || {};
+    function normalizePayload(p) {
+      if (typeof p==='string'){try{return JSON.parse(p);}catch{return{message:p};}} return p||{};
     }
-
     function extractRecord(payload) {
-      if (!payload || typeof payload !== 'object') return null;
-      if (payload.payload && typeof payload.payload === 'object') return payload.payload;
-      if (typeof payload.payload === 'string') return normalizePayload(payload.payload);
+      if (!payload||typeof payload!=='object') return null;
+      if (payload.payload&&typeof payload.payload==='object') return payload.payload;
+      if (typeof payload.payload==='string') return normalizePayload(payload.payload);
       return payload;
     }
 
-    function updateAircraft(event, record) {
-      if (!record || typeof record !== 'object' || !record.hex) return;
+    function updateAircraft(event,record) {
+      if (!record||typeof record!=='object'||!record.hex) return;
       const hex = String(record.hex);
-      const previous = state.aircraft.get(hex) || {};
-      state.aircraft.set(hex, {
-        ...previous,
-        ...record,
-        hex,
-        topic: event.topic,
-        received_at: event.received_at,
-        offset: event.offset,
-        partition: event.partition
-      });
+      state.aircraft.set(hex,{...(state.aircraft.get(hex)||{}),...record,hex,topic:event.topic,received_at:event.received_at,offset:event.offset,partition:event.partition});
     }
 
-    function updateAlerts(event, payload, record) {
-      const alert = buildAlert(event, payload, record);
+    function updateAlerts(event,payload,record) {
+      const alert = buildAlert(event,payload,record);
       if (!alert) return;
-
-      state.alerts.set(alert.key, alert);
-      const sorted = Array.from(state.alerts.values())
-        .sort((a, b) => new Date(b.received_at) - new Date(a.received_at))
-        .slice(0, MAX_ALERTS);
-      state.alerts = new Map(sorted.map(item => [item.key, item]));
+      state.alerts.set(alert.key,alert);
+      const sorted = Array.from(state.alerts.values()).sort((a,b)=>new Date(b.received_at)-new Date(a.received_at)).slice(0,MAX_ALERTS);
+      state.alerts = new Map(sorted.map(a=>[a.key,a]));
     }
 
-    function buildAlert(event, payload, record) {
-      if (event.topic !== 'alerts') return null;
+    function buildAlert(event,payload,record) {
+      const source = record&&typeof record==='object'?record:payload;
+      const squawk  = String(source?(source.squawk??source.Squawk??''):'').trim();
+      const emerReason = EMERGENCY_SQUAWKS[squawk];
 
-      const source = record && typeof record === 'object' ? record : payload;
-      const squawkValue = source ? source.squawk ?? source.Squawk : '';
-      const emergencyValue = source ? source.emergency ?? source.Emergency : '';
-      const squawk = squawkValue != null ? String(squawkValue).trim() : '';
-      const emergency = emergencyValue ? String(emergencyValue).trim().toLowerCase() : '';
-      const emergencyReason = EMERGENCY_SQUAWKS[squawk];
-
-      let reason = emergencyReason || 'Alert topic event';
-      const sourceReason = source ? source.reason ?? source.Reason ?? source.message ?? source.status_message : '';
-      if (sourceReason) reason = String(sourceReason);
-      if (emergency && emergency !== 'none') reason = emergency;
-
-      const hexValue = source ? source.hex ?? source.Hex : '';
-      const flightValue = source ? source.flight ?? source.Flight : '';
-      const hex = hexValue ? String(hexValue) : 'unknown';
-      const flight = flightValue ? String(flightValue).trim() : hex;
-      const severity = emergencyReason || emergency !== 'none' ? 'critical' : 'warning';
-
-      return {
-        key: [event.topic, event.partition, event.offset, hex, squawk, reason].join('/'),
-        severity,
-        reason,
-        hex,
-        flight,
-        squawk,
-        topic: event.topic,
-        received_at: event.received_at
-      };
+      if (event.topic==='alerts') {
+        const emer   = String(source?(source.emergency??source.Emergency??''):'').trim().toLowerCase();
+        let reason   = emerReason||'Alert topic event';
+        const srcR   = source?(source.reason??source.Reason??source.message??source.status_message??''):'';
+        if (srcR) reason=String(srcR);
+        if (emer&&emer!=='none') reason=emer;
+        const hex    = String(source?(source.hex??source.Hex??''):'') ||'unknown';
+        const flight = String(source?(source.flight??source.Flight??''):'').trim()||hex;
+        const severity=(emerReason||(emer&&emer!=='none'))?'critical':'warning';
+        return {key:[event.topic,event.partition,event.offset,hex,squawk,reason].join('/'),severity,reason,hex,flight,squawk,topic:event.topic,received_at:event.received_at};
+      }
+      if (emerReason&&source&&source.hex) {
+        const hex=String(source.hex); const flight=source.flight?String(source.flight).trim():hex;
+        return {key:'squawk/'+hex+'/'+squawk,severity:'critical',reason:emerReason,hex,flight,squawk,topic:event.topic,received_at:event.received_at};
+      }
+      return null;
     }
 
     function renderAll() {
-      renderMetrics();
-      renderAlerts();
-      renderAircraft();
       renderTopicStatus();
+      renderPipelineCards();
+      renderAlerts();
+      renderCallout();
+      renderAircraft();
       renderDeveloperTopics();
     }
 
-    function renderMetrics() {
-      const aircraft = Array.from(state.aircraft.values());
-      const alerts = Array.from(state.alerts.values());
-      const topicCount = state.topics.length;
-      const activeTopicCount = state.topics.filter(topic => (state.messages.get(topic) || []).length > 0).length;
-      const airportCount = aircraft.filter(isAirportArea).length;
-
-      els.metricAircraft.textContent = aircraft.length;
-      els.metricAircraftNote.textContent = aircraft.length ? 'Most recent ' + formatAge(latestAircraftTime(aircraft)) : 'No traffic yet';
-      els.metricAlerts.textContent = alerts.length;
-      els.metricAlertsNote.textContent = alerts.length ? alerts[0].reason : 'No active alerts';
-      els.metricGround.textContent = airportCount;
-      els.metricTopics.textContent = activeTopicCount;
-      els.metricTopicsNote.textContent = topicCount + ' configured';
-      els.developerCount.textContent = topicCount + ' topics';
-    }
-
+    // Renders individual alert entries with their cause into the callout panel.
     function renderAlerts() {
       const alerts = Array.from(state.alerts.values())
         .sort((a, b) => new Date(b.received_at) - new Date(a.received_at));
 
-      els.alertsCount.textContent = alerts.length + ' active';
-      els.alertsList.replaceChildren();
+      // Remove stale alert elements
+      const liveKeys = new Set(alerts.map(a => a.key));
+      for (const [key, el] of rendered.alertEls) {
+        if (!liveKeys.has(key)) { el.remove(); rendered.alertEls.delete(key); }
+      }
+
       if (alerts.length === 0) {
-        els.alertsList.appendChild(emptyNode('No active alerts'));
+        // Nothing to show — callout-sub handles the "No active alerts" text
         return;
       }
 
-      for (const alert of alerts) {
-        const item = document.createElement('article');
-        item.className = 'alert-item ' + alert.severity;
+      // Insert/reorder alert rows without destroying existing nodes
+      alerts.forEach((alert, i) => {
+        let el = rendered.alertEls.get(alert.key);
+        if (!el) {
+          el = buildAlertEl(alert);
+          rendered.alertEls.set(alert.key, el);
+        } else {
+          // Update age in-place
+          const ageEl = el.querySelector('.alert-age');
+          if (ageEl) ageEl.textContent = formatAge(alert.received_at);
+        }
+        const sibling = els.alertsList.children[i];
+        if (sibling !== el) els.alertsList.insertBefore(el, sibling || null);
+      });
+    }
 
-        const bar = document.createElement('div');
-        bar.className = 'alert-bar';
-        item.appendChild(bar);
+    function buildAlertEl(alert) {
+      const el = document.createElement('div');
+      el.className = 'callout-alert' + (alert.severity === 'critical' ? ' critical' : '');
 
-        const body = document.createElement('div');
-        const title = document.createElement('div');
-        title.className = 'alert-title';
-        title.appendChild(textEl('span', alert.reason));
-        title.appendChild(textEl('span', formatTime(alert.received_at)));
-        body.appendChild(title);
+      const sev = document.createElement('span');
+      sev.className = 'alert-sev ' + (alert.severity === 'critical' ? 'critical' : 'warning');
+      sev.textContent = alert.severity === 'critical' ? 'CRIT' : 'WARN';
+      el.appendChild(sev);
 
-        const meta = document.createElement('div');
-        meta.className = 'alert-meta';
-        meta.appendChild(textEl('span', alert.flight || alert.hex));
-        meta.appendChild(textEl('span', 'hex ' + alert.hex));
-        meta.appendChild(textEl('span', alert.squawk ? 'squawk ' + alert.squawk : 'no squawk'));
-        meta.appendChild(textEl('span', alert.topic));
-        body.appendChild(meta);
+      const body = document.createElement('div');
+      body.className = 'alert-body';
 
-        item.appendChild(body);
-        els.alertsList.appendChild(item);
+      const cause = document.createElement('div');
+      cause.className = 'alert-cause';
+      cause.textContent = alert.reason;
+      body.appendChild(cause);
+
+      const detail = document.createElement('div');
+      detail.className = 'alert-detail';
+      const parts = [alert.flight !== alert.hex ? alert.flight : null, 'hex ' + alert.hex, alert.squawk ? 'squawk ' + alert.squawk : null].filter(Boolean);
+      detail.textContent = parts.join(' · ');
+      body.appendChild(detail);
+
+      el.appendChild(body);
+
+      const age = document.createElement('span');
+      age.className = 'alert-age';
+      age.textContent = formatAge(alert.received_at);
+      el.appendChild(age);
+
+      return el;
+    }
+
+    function renderTopicStatus() {
+      let newestTopic=null,newestTime=0;
+      for (const topic of state.topics) {
+        const msgs=state.messages.get(topic)||[];
+        if (msgs.length>0){const t=new Date(msgs[0].received_at).getTime();if(t>newestTime){newestTime=t;newestTopic=topic;}}
+      }
+      state.topics.forEach((topic,i)=>{
+        const msgs=state.messages.get(topic)||[];
+        let pill=rendered.topicPills.get(topic);
+        if (!pill){
+          pill=document.createElement('span');
+          pill.appendChild(textEl('span',String(i+1).padStart(2,'0'),'pill-num'));
+          pill.appendChild(document.createTextNode(' '+topic.toUpperCase()));
+          els.topicStatus.appendChild(pill);
+          rendered.topicPills.set(topic,pill);
+        }
+        pill.className='topic-pill'+(topic===newestTopic?' active':'')+(msgs.length===0?' idle':'');
+      });
+    }
+
+    function renderPipelineCards() {
+      let newestTopic=null,newestTime=0;
+      for (const topic of CARD_TOPICS){
+        const msgs=state.messages.get(topic)||[];
+        if(msgs.length>0){const t=new Date(msgs[0].received_at).getTime();if(t>newestTime){newestTime=t;newestTopic=topic;}}
+      }
+      for (const topic of CARD_TOPICS){
+        const ce=cardEls[topic]; if(!ce) continue;
+        const msgs=state.messages.get(topic)||[];
+        ce.card.classList.toggle('active-card',topic===newestTopic);
+        ce.count.textContent=state.totals.get(topic)||msgs.length;
+        ce.meta.textContent=msgs.length?formatTime(msgs[0].received_at):'empty';
+        if (topic==='task-status') renderStatusBars(msgs);
+        else renderCardList(topic,msgs,ce.body);
+      }
+    }
+
+    function renderStatusBars(msgs) {
+      const counts={completed:0,processing:0,retried:0,failed:0};
+      for (const msg of msgs){
+        const p=normalizePayload(msg.payload);
+        const s=String(p.status||p.state||p.type||'').toLowerCase();
+        if (s.includes('complet')||s.includes('done')||s.includes('success')) counts.completed++;
+        else if (s.includes('retry')||s.includes('retri')) counts.retried++;
+        else if (s.includes('fail')||s.includes('error')||s.includes('dead')) counts.failed++;
+        else counts.processing++;
+      }
+      const total=msgs.length||1;
+      [['completed','bar-completed','pct-completed'],
+       ['processing','bar-processing','pct-processing'],
+       ['retried','bar-retried','pct-retried'],
+       ['failed','bar-failed','pct-failed']
+      ].forEach(([key,barId,pctId])=>{
+        const p=Math.round((counts[key]/total)*100);
+        const bar=document.getElementById(barId); if(bar) bar.style.width=p+'%';
+        const pctEl=document.getElementById(pctId); if(pctEl) pctEl.textContent=p+'%';
+      });
+    }
+
+    function renderCardList(topic,msgs,bodyEl) {
+      let entry=rendered.cardBodies.get(topic);
+      const newestKey=msgs.length>0?msgs[0].partition+':'+msgs[0].offset:null;
+      if (!entry){entry={newestKey:null};rendered.cardBodies.set(topic,entry);}
+
+      if (msgs.length===0){
+        if (!bodyEl.querySelector('.card-empty')){bodyEl.replaceChildren();const e=document.createElement('div');e.className='card-empty';e.textContent='No data yet';bodyEl.appendChild(e);}
+        entry.newestKey=null; return;
+      }
+      bodyEl.querySelector('.card-empty')?.remove();
+      if (newestKey===entry.newestKey) return;
+
+      let newCount=0;
+      for (let i=0;i<msgs.length;i++){if(msgs[i].partition+':'+msgs[i].offset===entry.newestKey)break;newCount++;}
+      newCount=Math.min(newCount,msgs.length);
+
+      const anchor=bodyEl.firstChild;
+      for (let i=newCount-1;i>=0;i--) bodyEl.insertBefore(buildCardItem(topic,msgs[i]),anchor);
+      while (bodyEl.children.length>10) bodyEl.removeChild(bodyEl.lastChild);
+      entry.newestKey=newestKey;
+    }
+
+    function buildCardItem(topic,msg) {
+      const payload=normalizePayload(msg.payload);
+      const record=extractRecord(payload);
+
+      if (topic==='alerts'){
+        const el=document.createElement('div');
+        const src=record&&typeof record==='object'?record:payload;
+        const squawk=String(src?(src.squawk??''):'').trim();
+        const isCrit=!!EMERGENCY_SQUAWKS[squawk];
+        el.className='card-alert'+(isCrit?' critical':'');
+        const ind=document.createElement('span'); ind.className='alert-ind'; ind.textContent='!'; el.appendChild(ind);
+        const body=document.createElement('div');
+        const hex=src?String(src.hex??'unknown'):'unknown';
+        const flight=src?String(src.flight??hex):hex;
+        const reason=src?String(src.reason??src.message??(EMERGENCY_SQUAWKS[squawk]||'alert')):'alert';
+        const txt=document.createElement('div'); txt.className='alert-text'; txt.textContent=reason.toUpperCase().slice(0,26); body.appendChild(txt);
+        const sub=document.createElement('div'); sub.className='alert-sub'; sub.textContent=flight+' · '+(squawk||'no squawk'); body.appendChild(sub);
+        el.appendChild(body); return el;
+      }
+
+      const el=document.createElement('div'); el.className='card-item';
+      const dot=document.createElement('span');
+      dot.className='item-dot '+(topic==='dead-letter'?'red':record&&record.squawk&&EMERGENCY_SQUAWKS[String(record.squawk).trim()]?'amber':topic==='results'?'green':'muted');
+      el.appendChild(dot);
+      const txt=document.createElement('span'); txt.className='item-text'; txt.textContent=cardItemSummary(topic,payload,record); el.appendChild(txt);
+      return el;
+    }
+
+    function cardItemSummary(topic,payload,record) {
+      if (record&&record.hex) return (record.flight?String(record.flight).trim():record.hex)+' · '+record.hex;
+      if (payload&&payload.id) return String(payload.id).slice(0,20)+' · '+(payload.type||topic);
+      if (payload&&payload.reason) return String(payload.reason).slice(0,28);
+      return JSON.stringify(payload).slice(0,28);
+    }
+
+    function renderCallout() {
+      const aircraft  = Array.from(state.aircraft.values());
+      const alerts    = Array.from(state.alerts.values());
+      const taskMsgs  = state.messages.get('tasks') || [];
+      const resultMsgs= state.messages.get('results') || [];
+
+      // Headline: aircraft count
+      els.calloutAircraft.textContent = aircraft.length;
+
+      // Stat boxes
+      els.statAircraft.textContent = aircraft.length;
+      els.statAlerts.textContent   = alerts.length;
+      els.statAirport.textContent  = aircraft.filter(isAirportArea).length;
+      els.calloutTasks.textContent = state.totals.get('tasks') || taskMsgs.length;
+
+      // Section label above alert list
+      const crit = alerts.filter(a => a.severity === 'critical');
+      if (crit.length > 0) {
+        els.calloutSub.textContent = crit.length + ' EMERGENCY ALERT' + (crit.length > 1 ? 'S' : '') + ' ACTIVE';
+        els.calloutSub.style.color = 'var(--red)';
+      } else if (alerts.length > 0) {
+        els.calloutSub.textContent = alerts.length + ' ALERT' + (alerts.length > 1 ? 'S' : '') + ' ACTIVE';
+        els.calloutSub.style.color = 'var(--amber)';
+      } else {
+        els.calloutSub.textContent = aircraft.length ? 'ALL AIRCRAFT NOMINAL' : 'NO ACTIVE ALERTS';
+        els.calloutSub.style.color = '';
       }
     }
 
     function renderAircraft() {
-      const aircraft = Array.from(state.aircraft.values())
-        .sort((a, b) => new Date(b.received_at) - new Date(a.received_at))
-        .slice(0, MAX_AIRCRAFT_ROWS);
-
-      els.aircraftCount.textContent = state.aircraft.size + ' aircraft';
-      els.aircraftBody.replaceChildren();
-
-      if (aircraft.length === 0) {
-        const row = document.createElement('tr');
-        const cell = document.createElement('td');
-        cell.colSpan = 7;
-        cell.appendChild(emptyNode('No aircraft observed'));
-        row.appendChild(cell);
-        els.aircraftBody.appendChild(row);
+      const aircraft=Array.from(state.aircraft.values()).sort((a,b)=>new Date(b.received_at)-new Date(a.received_at)).slice(0,MAX_AIRCRAFT_ROWS);
+      els.aircraftCount.textContent=state.aircraft.size+' aircraft';
+      const liveHexes=new Set(aircraft.map(r=>r.hex));
+      for (const [hex,row] of rendered.aircraftEls) if(!liveHexes.has(hex)){row.remove();rendered.aircraftEls.delete(hex);}
+      const emptyRow=els.aircraftBody.querySelector('tr.empty-row');
+      if (aircraft.length===0){
+        if (!emptyRow){const row=document.createElement('tr');row.className='empty-row';const cell=document.createElement('td');cell.colSpan=7;cell.appendChild(emptyNode('No aircraft observed'));row.appendChild(cell);els.aircraftBody.appendChild(row);}
         return;
       }
-
-      for (const record of aircraft) {
-        const row = document.createElement('tr');
-        row.appendChild(textCell(record.flight ? String(record.flight).trim() : '--'));
-        row.appendChild(textCell(record.hex || '--', 'mono'));
-
-        const squawkCell = document.createElement('td');
-        const squawk = document.createElement('span');
-        squawk.className = 'squawk' + (EMERGENCY_SQUAWKS[String(record.squawk || '').trim()] ? ' emergency' : '');
-        squawk.textContent = record.squawk ? String(record.squawk).trim() : '--';
-        squawkCell.appendChild(squawk);
-        row.appendChild(squawkCell);
-
-        row.appendChild(textCell(formatAltitude(record)));
-        row.appendChild(textCell(record.gs != null ? record.gs + ' kt' : record.velocity != null ? record.velocity + ' kt' : '--'));
-        row.appendChild(textCell(isAirportArea(record) ? 'Airport' : 'Airborne'));
-        row.appendChild(textCell(formatAge(record.received_at)));
-        els.aircraftBody.appendChild(row);
-      }
+      if (emptyRow) emptyRow.remove();
+      aircraft.forEach((record,i)=>{
+        let row=rendered.aircraftEls.get(record.hex);
+        if (!row){row=buildAircraftRow(record);rendered.aircraftEls.set(record.hex,row);}
+        else updateAircraftRow(row,record);
+        if (els.aircraftBody.children[i]!==row) els.aircraftBody.insertBefore(row,els.aircraftBody.children[i]||null);
+      });
     }
 
-    function renderTopicStatus() {
-      els.topicStatus.replaceChildren();
-      for (const topic of state.topics) {
-        const messages = state.messages.get(topic) || [];
-        const chip = document.createElement('article');
-        chip.className = 'topic-chip';
+    function buildAircraftRow(record) {
+      const row=document.createElement('tr');
+      row.appendChild(textCell(record.flight?String(record.flight).trim():'—'));
+      row.appendChild(textCell(record.hex||'—','mono'));
+      const sqTd=document.createElement('td');const sq=document.createElement('span');
+      const sqCode=String(record.squawk||'').trim();
+      sq.className='squawk'+(EMERGENCY_SQUAWKS[sqCode]?' emergency':'');sq.textContent=sqCode||'—';
+      sqTd.appendChild(sq);row.appendChild(sqTd);
+      row.appendChild(textCell(formatAltitude(record)));
+      row.appendChild(textCell(record.gs!=null?record.gs+' kt':record.velocity!=null?record.velocity+' kt':'—'));
+      row.appendChild(textCell(isAirportArea(record)?'Airport':'Airborne'));
+      row.appendChild(textCell(formatAge(record.received_at)));
+      return row;
+    }
 
-        const title = document.createElement('div');
-        title.className = 'topic-chip-name';
-        title.appendChild(textEl('span', topic));
-        title.appendChild(textEl('span', String(messages.length)));
-        chip.appendChild(title);
+    function updateAircraftRow(row,record) {
+      const c=row.cells;
+      c[0].textContent=record.flight?String(record.flight).trim():'—';
+      c[1].textContent=record.hex||'—';
+      const sqCode=String(record.squawk||'').trim();
+      const sq=c[2].querySelector('.squawk');sq.className='squawk'+(EMERGENCY_SQUAWKS[sqCode]?' emergency':'');sq.textContent=sqCode||'—';
+      c[3].textContent=formatAltitude(record);
+      c[4].textContent=record.gs!=null?record.gs+' kt':record.velocity!=null?record.velocity+' kt':'—';
+      c[5].textContent=isAirportArea(record)?'Airport':'Airborne';
+      c[6].textContent=formatAge(record.received_at);
+    }
 
-        const meta = document.createElement('div');
-        meta.className = 'topic-chip-meta';
-        meta.textContent = messages.length ? 'last ' + formatTime(messages[0].received_at) : 'empty';
-        chip.appendChild(meta);
-
-        els.topicStatus.appendChild(chip);
-      }
+    // Derives topic health from real signals only.
+    function topicStatus(topic, msgs) {
+      if (msgs.length === 0) return { level: 'idle', label: 'idle' };
+      if (topic === 'dead-letter') return { level: 'error',   label: msgs.length + ' failed' };
+      if (topic === 'retries')     return { level: 'warning', label: msgs.length + ' retried' };
+      const age = Date.now() - new Date(msgs[0].received_at).getTime();
+      if (age < 60_000)  return { level: 'healthy', label: 'active' };
+      if (age < 300_000) return { level: 'idle',    label: 'slowing' };
+      return                    { level: 'idle',    label: 'stale' };
     }
 
     function renderDeveloperTopics() {
-      els.topicsGrid.replaceChildren();
+      els.developerCount.textContent =
+        state.topics.length + ' topic' + (state.topics.length !== 1 ? 's' : '');
+
       for (const topic of state.topics) {
         const events = state.messages.get(topic) || [];
-        const card = document.createElement('article');
-        card.className = 'topic-card';
+        let entry = rendered.topicCards.get(topic);
 
-        const header = document.createElement('header');
-        const title = document.createElement('div');
-        title.className = 'topic-card-title';
-        title.appendChild(textEl('h3', topic));
-        title.appendChild(textEl('span', events.length + ' messages', 'mini-pill'));
-        header.appendChild(title);
+        if (!entry) {
+          // ── Build card once ──────────────────────────────────
+          const card = document.createElement('article');
+          card.className = 'topic-card';
 
-        const meta = document.createElement('div');
-        meta.className = 'topic-meta';
-        meta.appendChild(textEl('span', events.length ? 'partition ' + events[0].partition : 'partition --'));
-        meta.appendChild(textEl('span', events.length ? 'offset ' + events[0].offset : 'offset --'));
-        meta.appendChild(textEl('span', events.length ? formatTime(events[0].received_at) : 'empty'));
-        header.appendChild(meta);
-        card.appendChild(header);
+          // Header: topic name + message count pill
+          const header = document.createElement('header');
+          const titleRow = document.createElement('div');
+          titleRow.className = 'topic-card-title';
+          titleRow.appendChild(textEl('h3', topic));
+          const countPill = textEl('span', events.length + ' messages', 'mini-pill');
+          titleRow.appendChild(countPill);
+          header.appendChild(titleRow);
 
-        const list = document.createElement('div');
-        list.className = 'topic-events';
-        if (events.length === 0) {
-          list.appendChild(emptyNode('Empty topic'));
+          // Meta: partition · offset · last seen
+          const meta = document.createElement('div');
+          meta.className = 'topic-meta';
+          const partSpan = textEl('span', events.length ? 'partition ' + events[0].partition : 'partition —');
+          const offSpan  = textEl('span', events.length ? 'offset '    + events[0].offset    : 'offset —');
+          const timeSpan = textEl('span', events.length ? formatAge(events[0].received_at)    : 'no messages');
+          meta.appendChild(partSpan); meta.appendChild(offSpan); meta.appendChild(timeSpan);
+          header.appendChild(meta);
+          card.appendChild(header);
+
+          // Scrollable message list — all messages shown
+          const list = document.createElement('div');
+          list.className = 'topic-events';
+          if (events.length === 0) list.appendChild(emptyNode('No messages yet'));
+          else for (const ev of events.slice(0, 20)) list.appendChild(buildMsgRow(ev));
+          card.appendChild(list);
+
+          els.topicsGrid.appendChild(card);
+          const newestKey = events.length > 0 ? events[0].partition + ':' + events[0].offset : null;
+          rendered.topicCards.set(topic, { card, list, countPill, partSpan, offSpan, timeSpan, newestKey });
+
         } else {
-          for (const event of events.slice(0, 20)) {
-            list.appendChild(devEventNode(event));
+          // ── Reconcile existing card ───────────────────────────
+          const newestKey = events.length > 0 ? events[0].partition + ':' + events[0].offset : null;
+
+          if (newestKey !== entry.newestKey && events.length > 0) {
+            let newCount = 0;
+            for (let i = 0; i < events.length; i++) {
+              if (events[i].partition + ':' + events[i].offset === entry.newestKey) break;
+              newCount++;
+            }
+            entry.list.querySelector('.empty')?.remove();
+            const anchor = entry.list.firstChild;
+            for (let i = newCount - 1; i >= 0; i--)
+              entry.list.insertBefore(buildMsgRow(events[i]), anchor);
+            while (entry.list.children.length > 20)
+              entry.list.removeChild(entry.list.lastChild);
+            entry.newestKey = newestKey;
           }
+
+          // Update header meta in-place
+          entry.countPill.textContent = (state.totals.get(topic) || events.length) + ' messages';
+          entry.partSpan.textContent  = events.length ? 'partition ' + events[0].partition : 'partition —';
+          entry.offSpan.textContent   = events.length ? 'offset '    + events[0].offset    : 'offset —';
+          entry.timeSpan.textContent  = events.length ? formatAge(events[0].received_at)    : 'no messages';
         }
-        card.appendChild(list);
-        els.topicsGrid.appendChild(card);
       }
     }
 
-    function devEventNode(event) {
-      const item = document.createElement('article');
-      item.className = 'dev-event';
+    function buildMsgRow(event) {
+      const row = document.createElement('div');
+      row.className = 'msg-row';
 
-      const line = document.createElement('div');
-      line.className = 'dev-event-line';
-      line.appendChild(textEl('span', formatTime(event.received_at)));
-      line.appendChild(textEl('span', 'offset ' + event.offset));
-      item.appendChild(line);
+      // Header: time · summary · offset
+      const head = document.createElement('div');
+      head.className = 'msg-head';
 
-      item.appendChild(textEl('div', eventSummary(event), 'dev-summary'));
+      const time = textEl('span', formatAge(event.received_at), 'msg-time');
+      time.title = event.received_at || '';
+      head.appendChild(time);
 
-      const details = document.createElement('details');
-      const summary = document.createElement('summary');
-      summary.textContent = 'Details';
+      head.appendChild(textEl('span', '·', 'msg-sep'));
+      head.appendChild(textEl('span', eventSummary(event), 'msg-text'));
+      head.appendChild(textEl('span', 'p' + event.partition + ' · off ' + event.offset, 'msg-offset'));
+      row.appendChild(head);
+
+      // JSON block — collapsed to ~5 lines by default
       const pre = document.createElement('pre');
+      pre.className = 'msg-json';
       pre.textContent = JSON.stringify(event, null, 2);
-      details.appendChild(summary);
-      details.appendChild(pre);
-      item.appendChild(details);
+      row.appendChild(pre);
 
-      return item;
+      // View more / View less toggle
+      const toggle = document.createElement('button');
+      toggle.className = 'msg-json-toggle';
+      toggle.textContent = 'View JSON';
+      toggle.addEventListener('click', () => {
+        const expanded = pre.classList.toggle('expanded');
+        toggle.textContent = expanded ? 'Hide JSON ↑' : 'View JSON';
+      });
+      row.appendChild(toggle);
+
+      return row;
     }
 
     function eventSummary(event) {
-      const payload = normalizePayload(event.payload);
-      const record = extractRecord(payload);
-      if (record && record.hex) {
-        const flight = record.flight ? String(record.flight).trim() : 'unknown';
-        return record.hex + ' / ' + flight;
-      }
-      if (payload && payload.id) return payload.id + ' / ' + (payload.type || 'task');
-      if (payload && payload.reason) return String(payload.reason);
-      return JSON.stringify(payload).slice(0, 90);
+      const payload=normalizePayload(event.payload);const record=extractRecord(payload);
+      if(record&&record.hex) return record.hex+' / '+(record.flight?String(record.flight).trim():'unknown');
+      if(payload&&payload.id) return payload.id+' / '+(payload.type||'task');
+      if(payload&&payload.reason) return String(payload.reason);
+      return JSON.stringify(payload).slice(0,90);
     }
 
-    function isAirportArea(record) {
-      if (!record) return false;
-      const alt = record.alt_baro != null ? record.alt_baro : record.altitude;
-      const dst = Number(record.dst);
-      return alt === 'ground' || (!Number.isNaN(dst) && dst <= 2.5);
-    }
+    function isAirportArea(record){if(!record)return false;const alt=record.alt_baro!=null?record.alt_baro:record.altitude;const dst=Number(record.dst);return alt==='ground'||(!Number.isNaN(dst)&&dst<=2.5);}
+    function formatAltitude(record){if(record.alt_baro!=null)return String(record.alt_baro);if(record.alt_geom!=null)return String(record.alt_geom);if(record.altitude!=null)return String(record.altitude);return '—';}
+    function formatTime(value){const d=new Date(value);if(!Number.isFinite(d.getTime()))return '—';return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+    function formatAge(value){const time=typeof value==='number'?value:new Date(value).getTime();if(!Number.isFinite(time)||time<=0)return '—';const s=Math.max(0,Math.round((Date.now()-time)/1000));if(s<60)return s+'s ago';const m=Math.round(s/60);if(m<60)return m+'m ago';return Math.round(m/60)+'h ago';}
+    function emptyNode(text){return textEl('div',text,'empty');}
+    function textCell(text,cls){const c=document.createElement('td');c.textContent=text;if(cls)c.className=cls;return c;}
+    function textEl(tag,text,cls){const el=document.createElement(tag);el.textContent=text;if(cls)el.className=cls;return el;}
 
-    function formatAltitude(record) {
-      if (record.alt_baro != null) return String(record.alt_baro);
-      if (record.alt_geom != null) return String(record.alt_geom);
-      if (record.altitude != null) return String(record.altitude);
-      return '--';
-    }
-
-    function latestAircraftTime(aircraft) {
-      if (!aircraft.length) return null;
-      return aircraft.reduce((latest, record) => {
-        const time = new Date(record.received_at).getTime();
-        return Number.isFinite(time) && time > latest ? time : latest;
-      }, 0);
-    }
-
-    function formatTime(value) {
-      const date = new Date(value);
-      if (!Number.isFinite(date.getTime())) return '--';
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    }
-
-    function formatAge(value) {
-      const time = typeof value === 'number' ? value : new Date(value).getTime();
-      if (!Number.isFinite(time) || time <= 0) return '--';
-      const seconds = Math.max(0, Math.round((Date.now() - time) / 1000));
-      if (seconds < 60) return seconds + 's ago';
-      const minutes = Math.round(seconds / 60);
-      if (minutes < 60) return minutes + 'm ago';
-      return Math.round(minutes / 60) + 'h ago';
-    }
-
-    function emptyNode(text) {
-      return textEl('div', text, 'empty');
-    }
-
-    function textCell(text, className) {
-      const cell = document.createElement('td');
-      cell.textContent = text;
-      if (className) cell.className = className;
-      return cell;
-    }
-
-    function textEl(tag, text, className) {
-      const el = document.createElement(tag);
-      el.textContent = text;
-      if (className) el.className = className;
-      return el;
-    }
-
-    for (const tab of document.querySelectorAll('.tab')) {
-      tab.addEventListener('click', () => setView(tab.dataset.view));
-    }
-
-    window.addEventListener('hashchange', () => setView(location.hash.replace('#', '')));
-
+    for (const tab of document.querySelectorAll('.tab')) tab.addEventListener('click',()=>setView(tab.dataset.view));
+    window.addEventListener('hashchange',()=>setView(location.hash.replace('#','')));
     setTopics(FALLBACK_TOPICS);
-    setView(location.hash.replace('#', ''));
+    setView(location.hash.replace('#',''));
     renderAll();
     loadSnapshot();
     connectEvents();
